@@ -55,7 +55,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="MyHelpers.cs" />
-    <Compile Include="OutlawPVP.cs" />
+    <Compile Include="Main.cs" />
     <Compile Include="OutlawSettings.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

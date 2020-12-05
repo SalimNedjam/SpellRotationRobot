@@ -55,7 +55,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="MyHelpers.cs" />
-    <Compile Include="OutlawPVE.cs">
+    <Compile Include="Main.cs">
       <Plugin>true</Plugin>
     </Compile>
     <Compile Include="OutlawSettings.cs" />

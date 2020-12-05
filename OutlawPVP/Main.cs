@@ -88,7 +88,7 @@ public class Main : ICustomClass
             {
                 if (Products.InPause)
                     Lua.LuaDoString(@"dRotationFrame.text:SetText(""dRotation Paused!"")");
-                else if (!ObjectManager.Me.IsDeadMe && Fight.InFight && ObjectManager.Me.Target.IsNotZero())
+                else if (!ObjectManager.Me.IsDeadMe  && ObjectManager.Me.Target.IsNotZero() && ObjectManager.Target.IsAttackable)
                     CombatRotation();
 
             }
@@ -97,7 +97,7 @@ public class Main : ICustomClass
                 Logging.WriteError(name + " ERROR: " + e);
             }
 
-            Thread.Sleep(10); // Pause 10 ms to reduce the CPU usage.
+            Thread.Sleep(50); // Pause 10 ms to reduce the CPU usage.
         }
         Logging.Write(name + ": Stopped.");
     }
@@ -186,8 +186,17 @@ public class Main : ICustomClass
             }
         }
 
-        if (ObjectManager.Me.HealthPercent < 50)
+        if (ObjectManager.Me.Health < ObjectManager.Me.MaxHealth*0.7)
         {
+            
+
+            if (CrimsonVial.KnownSpell && CrimsonVial.IsSpellUsable)
+            {
+                CrimsonVial.Launch();
+                Lua.LuaDoString(@"dRotationFrame.text:SetText(""Crimson Vial"")");
+                return;
+            }
+
             if (SmokeBomb.KnownSpell && SmokeBomb.IsSpellUsable)
             {
                 SmokeBomb.Launch();
@@ -195,14 +204,7 @@ public class Main : ICustomClass
                 return;
             }
 
-            if (OutlawSettings.CurrentSetting.EnableCrimsonVial && CrimsonVial.KnownSpell && CrimsonVial.IsSpellUsable)
-            {
-                CrimsonVial.Launch();
-                Lua.LuaDoString(@"dRotationFrame.text:SetText(""Crimson Vial"")");
-                return;
-            }
-
-            if (OutlawSettings.CurrentSetting.EnableFeint && Feint.KnownSpell && Feint.IsSpellUsable)
+            if (Feint.KnownSpell && Feint.IsSpellUsable)
             {
                 Feint.Launch();
                 Lua.LuaDoString(@"dRotationFrame.text:SetText(""Feint"")");
@@ -210,7 +212,7 @@ public class Main : ICustomClass
             }
 
 
-            if (OutlawSettings.CurrentSetting.EnableRiposte && Riposte.KnownSpell && Riposte.IsSpellUsable)
+            if ( Riposte.KnownSpell && Riposte.IsSpellUsable)
             {
                 Riposte.Launch();
                 Lua.LuaDoString(@"dRotationFrame.text:SetText(""Riposte"")");
@@ -220,7 +222,7 @@ public class Main : ICustomClass
             
         }
 
-        if (ObjectManager.Me.IsStunned || ObjectManager.Me.Rooted || ObjectManager.Me.Confused )
+        if (ObjectManager.Me.IsStunned || ObjectManager.Me.Rooted || ObjectManager.Me.Confused)
         {
             if (GladiatorsMedallion.KnownSpell && GladiatorsMedallion.IsSpellUsable)
             {
@@ -229,6 +231,11 @@ public class Main : ICustomClass
                 return;
             }
 
+            
+        }
+        
+        if(ObjectManager.Me.SpeedMoving < 8.05 && ObjectManager.Me.SpeedMoving > 0)
+        {
             if (OutlawSettings.CurrentSetting.EnableCloakOfShadows
             && CloakOfShadows.KnownSpell && CloakOfShadows.IsSpellUsable)
             {
@@ -237,8 +244,6 @@ public class Main : ICustomClass
                 return;
             }
         }
-        
-
         if (OutlawSettings.CurrentSetting.EnableRazorCoral
             && EquippedItems.GetEquippedItems().Find(x => x.GetItemInfo.ItemName == ItemsManager.GetNameById(169311)) != null
             && MyHelpers.getTargetDistance() <= MyHelpers.getMeleeRange()
@@ -393,9 +398,6 @@ public class Main : ICustomClass
             Lua.LuaDoString("dRotationFrame.text:SetText(\"Dispatch " + MyHelpers.getTargetDistance() + " / " + MyHelpers.GetMeleeRangeWithTarget() + "\")");
             return;
         }
-
-
-        
 
     }
 }
