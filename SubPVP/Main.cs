@@ -13,6 +13,8 @@ using Math = System.Math;
 public class Main : ICustomClass
 {
     public string name = "Outlaw";
+    public WoWUnit lastTarget;
+    public bool isCheap = true;
     public float Range { get { return 3.0f; } }
 
     private bool _isRunning;
@@ -53,17 +55,34 @@ public class Main : ICustomClass
         OutlawSettings.CurrentSetting.Save();
     }
 
+
+    public void runCheap()
+    {
+        isCheap = false;
+        Thread.Sleep(18000);
+        isCheap = true;
+        // do your job!
+    }
     /*
     * Spells for Rotation 
     */
-    public Spell RolltheBones = new Spell("Roll the Bones");
-    public Spell SinisterStrike = new Spell("Sinister Strike");
-    public Spell PistolShot = new Spell("Pistol Shot");
-    public Spell Dispatch = new Spell("Dispatch");
-    public Spell BetweenTheEyes = new Spell("Between The Eyes");
-    public Spell BladeFlurry = new Spell("Blade Flurry");
+    public Spell SymbolsofDeath = new Spell("Symbols of Death");
+    public Spell ConcentratedFlame = new Spell("Concentrated Flame");
+    public Spell Backstab = new Spell("Backstab");
+    public Spell Nightblade = new Spell("Nightblade");
+    public Spell MarkedforDeath = new Spell("Marked for Death");
+    public Spell Eviscerate = new Spell("Eviscerate");
+    public Spell KidneyShot = new Spell("Kidney Shot");
+    public Spell ShadowStep = new Spell("Shadowstep");
+    public Spell ShadowDance = new Spell("Shadow Dance");
+    public Spell ShadowBlades = new Spell("Shadow Blades");
+    public Spell Evasion = new Spell("Evasion");
+    public Spell ShadowyDuel = new Spell("Shadowy Duel");
+    public Spell Shadowstrike = new Spell("Shadowstrike");
+    public Spell ColdBlood = new Spell("Cold Blood");
+    public Spell CheapShot = new Spell("Cheap Shot");
+    public Spell Sealth = new Spell("Sealth");
     public Spell BloodoftheEnemy = new Spell("Blood of the Enemy");
-    public Spell AdrenalineRush = new Spell("Adrenaline Rush");
     public Spell Kick = new Spell("Kick");
     public Spell Blind = new Spell("Blind");
     public Spell Gouge = new Spell("Gouge");
@@ -75,7 +94,6 @@ public class Main : ICustomClass
     public Spell Sprint = new Spell("Sprint");
     public Spell SmokeBomb = new Spell("Smoke Bomb");
     public Spell GladiatorsMedallion = new Spell(208683);
-    public Spell BladeRush = new Spell("Blade Rush");
 
     /* Rotation() */
     public void Rotation()
@@ -88,7 +106,7 @@ public class Main : ICustomClass
             {
                 if (Products.InPause)
                     Lua.LuaDoString(@"dRotationFrame.text:SetText(""dRotation Paused!"")");
-                else if (!ObjectManager.Me.IsDeadMe  && ObjectManager.Me.Target.IsNotZero() && !MyHelpers.sealthed())
+                else if (!ObjectManager.Me.IsDeadMe && ObjectManager.Me.Target.IsNotZero() && !ObjectManager.Me.IsMounted)
                     CombatRotation();
 
             }
@@ -153,12 +171,17 @@ public class Main : ICustomClass
     */
     public void CombatRotation()
     {
+        if (lastTarget != ObjectManager.Target)
+        {
+            lastTarget = ObjectManager.Target;
+            isCheap = true;
+        }
 
         if (OutlawSettings.CurrentSetting.EnableInterrupt)
         {
 
             WoWUnit toInterrupt = MyHelpers.InterruptableUnits();
-            if (toInterrupt != null )
+            if (toInterrupt != null)
             {
                 ObjectManager.Me.FocusGuid = toInterrupt.Guid;
 
@@ -186,47 +209,40 @@ public class Main : ICustomClass
             }
         }
 
-        if (ObjectManager.Me.Health < ObjectManager.Me.MaxHealth*0.7)
+        if (ObjectManager.Me.Health < ObjectManager.Me.MaxHealth * 0.7)
         {
-            
-
             if (CrimsonVial.KnownSpell && CrimsonVial.IsSpellUsable)
             {
                 CrimsonVial.Launch();
                 Lua.LuaDoString(@"dRotationFrame.text:SetText(""Crimson Vial"")");
                 return;
             }
-
-
             if (Feint.KnownSpell && Feint.IsSpellUsable)
             {
                 Feint.Launch();
                 Lua.LuaDoString(@"dRotationFrame.text:SetText(""Feint"")");
                 return;
             }
-
-
-
-            
         }
 
         if (ObjectManager.Me.Health < ObjectManager.Me.MaxHealth * 0.3)
         {
-
-            if (SmokeBomb.KnownSpell && SmokeBomb.IsSpellUsable)
+            if (Evasion.KnownSpell && Evasion.IsSpellUsable)
             {
-                SmokeBomb.Launch();
-                Lua.LuaDoString(@"dRotationFrame.text:SetText(""Smoke Bomb"")");
+                Evasion.Launch();
+                Lua.LuaDoString(@"dRotationFrame.text:SetText(""Evasion"")");
                 return;
             }
 
-            if (Riposte.KnownSpell && Riposte.IsSpellUsable)
+            if (EquippedItems.GetEquippedItems().Find(x => x.GetItemInfo.ItemName == ItemsManager.GetNameById(167378)) != null
+            && MyHelpers.getTargetDistance() <= MyHelpers.getMeleeRange()
+            && Lua.LuaDoString("result = \"\";  local cooldown = GetItemCooldown(167378) if (cooldown == 0 ) then     result = true else     result = false end ", "result") == "true")
             {
-                Riposte.Launch();
-                Lua.LuaDoString(@"dRotationFrame.text:SetText(""Riposte"")");
+                ItemsManager.UseItem(167378);
+                Lua.LuaDoString(@"dRotationFrame.text:SetText(""Emblem"")");
                 return;
-            }
 
+            }
 
         }
 
@@ -239,172 +255,186 @@ public class Main : ICustomClass
                 return;
             }
 
-            
+
         }
-        
-        if(ObjectManager.Me.SpeedMoving < 8.05 && ObjectManager.Me.SpeedMoving > 0)
+
+
+        if (MyHelpers.sealthed()
+            && ColdBlood.KnownSpell
+            && ColdBlood.IsSpellUsable
+            && MyHelpers.getTargetDistance() < MyHelpers.getMeleeRange()
+            )
         {
-            if (OutlawSettings.CurrentSetting.EnableCloakOfShadows
-            && CloakOfShadows.KnownSpell && CloakOfShadows.IsSpellUsable)
-            {
-                CloakOfShadows.Launch();
-                Lua.LuaDoString(@"dRotationFrame.text:SetText(""Cloak Of Shadows"")");
-                return;
-            }
-        }
-        if (OutlawSettings.CurrentSetting.EnableRazorCoral
-            && EquippedItems.GetEquippedItems().Find(x => x.GetItemInfo.ItemName == ItemsManager.GetNameById(169311)) != null
-            && MyHelpers.getTargetDistance() <= MyHelpers.getMeleeRange()
-            && Lua.LuaDoString("result = \"\";  local cooldown = GetItemCooldown(169311) if (cooldown == 0 ) then     result = true else     result = false end ", "result") == "true"
-            && (!ObjectManager.Target.BuffCastedByAll("Razor Coral").Contains(ObjectManager.Me.Guid) || ObjectManager.Target.BuffStack("Razor Coral") >= 10))
-        {
-            ItemsManager.UseItem(169311);
-            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Razor Coral"")");
+            ColdBlood.Launch();
+            Lua.LuaDoString(@"dRotationFrame.text:SetText(""ColdBlood"")");
             return;
 
         }
 
-        if (OutlawSettings.CurrentSetting.EnableBladeFlurry
-            && BladeFlurry.KnownSpell && !MyHelpers.haveBuff("Blade Flurry") && BladeFlurry.IsSpellUsable && (MyHelpers.getAttackers(10) > 1))
+        if (Sealth.KnownSpell
+            && Sealth.IsSpellUsable
+            )
         {
-            BladeFlurry.Launch();
-            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Blade Flurry"")");
+            Sealth.Launch();
+            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Sealth"")");
             return;
+
         }
 
-        if (OutlawSettings.CurrentSetting.EnableBloodoftheEnemy
-            && BloodoftheEnemy.KnownSpell
-            && BloodoftheEnemy.IsSpellUsable
+        if (MyHelpers.sealthed()
+            && ShadowBlades.KnownSpell
+            && ShadowBlades.IsSpellUsable
+            && MyHelpers.getTargetDistance() < MyHelpers.getMeleeRange()
+            )
+        {
+            ShadowBlades.Launch();
+            Lua.LuaDoString(@"dRotationFrame.text:SetText(""ShadowBlades"")");
+            return;
+
+        }
+        if (SymbolsofDeath.KnownSpell
+            && SymbolsofDeath.IsSpellUsable
+            && MyHelpers.getTargetDistance() < MyHelpers.getMeleeRange()
+            )
+        {
+            SymbolsofDeath.Launch();
+            Lua.LuaDoString(@"dRotationFrame.text:SetText(""SymbolsofDeath"")");
+            return;
+
+        }
+        if (MyHelpers.sealthed()
+            && isCheap
+            && CheapShot.KnownSpell
+            && CheapShot.IsSpellUsable
+            && !ObjectManager.Target.HaveBuff("Cheap Shot")
+            && !ObjectManager.Target.HaveBuff("Kidney Shot")
+            && MyHelpers.getTargetDistance() < MyHelpers.getMeleeRange()
+            )
+        {
+            CheapShot.Launch();
+            Thread newThread = new Thread(runCheap);
+            newThread.Start();
+            Lua.LuaDoString(@"dRotationFrame.text:SetText(""CheapShot"")");
+            return;
+
+        }
+        if (EquippedItems.GetEquippedItems().Find(x => x.GetItemInfo.ItemName == ItemsManager.GetNameById(167383)) != null
             && MyHelpers.getTargetDistance() <= MyHelpers.getMeleeRange()
-            && ! MyHelpers.rtbReroll()
-            && BetweenTheEyes.IsSpellUsable
-            && (ObjectManager.Target.IsLocalPlayer || ObjectManager.Target.Type == WoWObjectType.Player)
-                
+            && Lua.LuaDoString("result = \"\";  local cooldown = GetItemCooldown(167383) if (cooldown == 0 ) then     result = true else     result = false end ", "result") == "true"
+            )
+        {
+            ItemsManager.UseItem(167383);
+            Lua.LuaDoString(@"dRotationFrame.text:SetText(""maledict"")");
+            return;
+
+        }
+        if (MarkedforDeath.KnownSpell
+        && MarkedforDeath.IsSpellUsable
+        && MyHelpers.getComboPoint() == 0
+        && MyHelpers.getTargetDistance() < MyHelpers.getMeleeRange()
         )
         {
-            BloodoftheEnemy.Launch();
-            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Bloodof the Enemy"")");
-            return;
-        }
-
-        
-
-        if (OutlawSettings.CurrentSetting.EnableGrapplingHook
-            && !ObjectManager.Me.IsMounted
-            && GrapplingHook.KnownSpell
-            && GrapplingHook.IsSpellUsable
-            && MyHelpers.getTargetDistance() <= 20.0f
-            && MyHelpers.getTargetDistance() > MyHelpers.getMeleeRange()
-            )
-        {
-            ClickOnTerrain.Spell(195457, ObjectManager.Target.Position);
-            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Grappling Hook"")");
+            MarkedforDeath.Launch();
+            Lua.LuaDoString(@"dRotationFrame.text:SetText(""MarkedforDeath"")");
             return;
 
         }
-
-        if (OutlawSettings.CurrentSetting.EnableSprint
-            && !ObjectManager.Me.IsMounted 
-            && Sprint.KnownSpell
-            && Sprint.IsSpellUsable
-            && MyHelpers.getTargetDistance() > 20.0f
-            )
-        {
-            Sprint.Launch();
-            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Sprint"")");
-            return;
-
-        }
-
-        if (OutlawSettings.CurrentSetting.EnableRolltheBones
-            && RolltheBones.KnownSpell
-            && RolltheBones.IsSpellUsable
-            && MyHelpers.getTargetDistance() <= MyHelpers.getMeleeRange()
+        if (MyHelpers.sealthed()
+            && Nightblade.KnownSpell
+            && Nightblade.IsSpellUsable
             && MyHelpers.getComboPoint() >= 4
-            && MyHelpers.rtbReroll()
+            && !ObjectManager.Target.HaveBuff("Nightblade")
+            && MyHelpers.getTargetDistance() < MyHelpers.getMeleeRange()
             )
         {
-            RolltheBones.Launch();
-            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Roll the Bones"")");
+            Nightblade.Launch();
+            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Nightblade"")");
             return;
-        }
-        if (OutlawSettings.CurrentSetting.EnableAdrenalineRush
-            && AdrenalineRush.KnownSpell
-            && AdrenalineRush.IsSpellUsable
-            && MyHelpers.getTargetDistance() <= MyHelpers.getMeleeRange()
-            && (ObjectManager.Target.IsBoss
-                    || ObjectManager.Target.IsElite
-                    || ObjectManager.Target.IsLocalPlayer
-                    || ObjectManager.Target.Type == WoWObjectType.Player
-                    || MyHelpers.getAttackers(10) > 3))
-        {
-            AdrenalineRush.Launch();
-            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Adrenaline Rush"")");
-            return;
+
         }
 
-        if (BladeRush.KnownSpell
-            && BladeRush.IsSpellUsable
-            && MyHelpers.getTargetDistance() <= 20.0f
+        if (MyHelpers.sealthed()
+            && Shadowstrike.KnownSpell
+            && Shadowstrike.IsSpellUsable
+            && MyHelpers.getComboPoint() < 4
+            && MyHelpers.getTargetDistance() < MyHelpers.getMeleeRange()
+            )
+        {
+            Shadowstrike.Launch();
+            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Shadowstrike"")");
+            return;
+
+        }
+        if (ShadowStep.KnownSpell
+            && ShadowStep.IsSpellUsable
             && MyHelpers.getTargetDistance() > MyHelpers.getMeleeRange()
-            && !ObjectManager.Me.IsMounted
+            && MyHelpers.getTargetDistance() < 25.0f
             )
         {
-            BladeRush.Launch();
-            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Blade Rush"")");
+            ShadowStep.Launch();
+            Lua.LuaDoString(@"dRotationFrame.text:SetText(""ShadowStep"")");
             return;
-        }
 
-        if (OutlawSettings.CurrentSetting.EnablePistolShot
-            && PistolShot.KnownSpell
-            && PistolShot.IsSpellUsable
-            && MyHelpers.getTargetDistance() <= 20.0f
-            && ((MyHelpers.haveBuff("Opportunity") && MyHelpers.getComboPoint() <= 4)
-                    || (MyHelpers.getTargetDistance() > MyHelpers.getMeleeRange() && !(BetweenTheEyes.IsSpellUsable && MyHelpers.getComboPoint() == 6))
-                    || (MyHelpers.haveBuff("Deadshot") && MyHelpers.haveBuff("Seething Rage") && !BetweenTheEyes.IsSpellUsable)
-                    ))
+        }
+        if (!MyHelpers.sealthed()
+            && ShadowDance.KnownSpell
+            && ShadowDance.IsSpellUsable
+            && MyHelpers.getTargetDistance() < MyHelpers.getMeleeRange()
+            )
         {
-            PistolShot.Launch();
-            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Pistol Shot"")");
+            ShadowDance.Launch();
+            Lua.LuaDoString(@"dRotationFrame.text:SetText(""ShadowDance"")");
             return;
-        }
 
-        if (OutlawSettings.CurrentSetting.EnableSinisterStrike
-            && SinisterStrike.KnownSpell
-            && SinisterStrike.IsSpellUsable
-            && MyHelpers.getTargetDistance() <= MyHelpers.getMeleeRange()
-            && MyHelpers.getComboPoint() <= 5)
+        }
+        if (!MyHelpers.sealthed()
+            && KidneyShot.KnownSpell
+            && KidneyShot.IsSpellUsable
+            && MyHelpers.getComboPoint() >= 4
+            && !ObjectManager.Target.HaveBuff("Cheap Shot")
+            && !ObjectManager.Target.HaveBuff("Kidney Shot")
+            && MyHelpers.getTargetDistance() < MyHelpers.getMeleeRange()
+            )
         {
-
-            SinisterStrike.Launch();
-            Lua.LuaDoString("dRotationFrame.text:SetText(\"Sinister Strike " + MyHelpers.getTargetDistance() + " / " + MyHelpers.GetMeleeRangeWithTarget() + "\")");
+            KidneyShot.Launch();
+            Lua.LuaDoString(@"dRotationFrame.text:SetText(""ShadowDance"")");
             return;
+
         }
 
-
-
-        if (OutlawSettings.CurrentSetting.EnableBetweenTheEyes
-            && BetweenTheEyes.KnownSpell
-            && BetweenTheEyes.IsSpellUsable
-            && MyHelpers.getTargetDistance() <= 20.0f
-            && MyHelpers.getComboPoint() == 6)
+        if (Eviscerate.KnownSpell
+            && Eviscerate.IsSpellUsable
+            && MyHelpers.getComboPoint() >= 4
+            && MyHelpers.getTargetDistance() < MyHelpers.getMeleeRange()
+            )
         {
-            BetweenTheEyes.Launch();
-            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Between the Eyes"")");
-
+            Eviscerate.Launch();
+            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Eviscerate"")");
             return;
-        }
 
-        if (OutlawSettings.CurrentSetting.EnableDispatch
-            && Dispatch.KnownSpell
-            && Dispatch.IsSpellUsable
-            && MyHelpers.getTargetDistance() <= MyHelpers.getMeleeRange()
-            && MyHelpers.getComboPoint() == 6)
+        }
+        if (ConcentratedFlame.KnownSpell
+            && ConcentratedFlame.IsSpellUsable
+            )
         {
-            Dispatch.Launch();
-            Lua.LuaDoString("dRotationFrame.text:SetText(\"Dispatch " + MyHelpers.getTargetDistance() + " / " + MyHelpers.GetMeleeRangeWithTarget() + "\")");
+            ConcentratedFlame.Launch();
+            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Concentrated Flame"")");
             return;
+
         }
+        if (!MyHelpers.sealthed()
+            && Backstab.KnownSpell
+            && Backstab.IsSpellUsable
+            && MyHelpers.getComboPoint() < 4
+            && MyHelpers.getTargetDistance() < MyHelpers.getMeleeRange()
+            )
+        {
+            Backstab.Launch();
+            Lua.LuaDoString(@"dRotationFrame.text:SetText(""ShadowDance"")");
+            return;
+
+        }
+
 
     }
 }

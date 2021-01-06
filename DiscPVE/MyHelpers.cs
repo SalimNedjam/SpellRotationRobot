@@ -64,6 +64,11 @@ public class MyHelpers
     {
         return ObjectManager.Me.HaveBuff(spellname);
     }
+
+    public static bool sealthed()
+    {
+        return haveBuff("Sealth") || haveBuff("Vanish");
+    }
     public static int getComboPoint()
     {
         return ObjectManager.Me.ComboPoint;
@@ -71,10 +76,6 @@ public class MyHelpers
     public static float getTargetDistance()
     {
         return ObjectManager.Target.GetDistance;
-    }
-    public static bool sealthed()
-    {
-        return haveBuff("Sealth") || haveBuff("Vanish");
     }
     public static double getMeleeRange()
     {

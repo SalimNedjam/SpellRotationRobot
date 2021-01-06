@@ -56,13 +56,36 @@ public class MyHelpers
     {
         return ObjectManager.GetWoWUnitAttackables(distance).Count;
     }
-    public static bool haveBuff(uint spellid)
-    {
-        return ObjectManager.Me.HaveBuff(spellid);
-    }
+
     public static bool haveBuff(string spellname)
     {
-        return ObjectManager.Me.HaveBuff(spellname);
+        return Lua.LuaDoString<bool>(
+        @"for i=1,40 do 
+            local n = UnitBuff('player', i);
+            local m = UnitAura('player', i);
+            if n == '" + spellname + @"' or m == '" + spellname + @"' then
+                return true;
+            end
+        end
+        return false;
+        ");
+    }
+    public static int haveBuffStack(string spellname)
+    {
+        return Lua.LuaDoString<int>(
+        @"for i=1,40 do 
+            local n, _, stacks = UnitBuff('player', i);
+            if n == '" + spellname + @"'  then
+                return stacks;
+            end
+        end
+        return 0;
+        ");
+    }
+
+    public static bool sealthed()
+    {
+        return haveBuff("Sealth") || haveBuff("Vanish");
     }
     public static int getComboPoint()
     {
@@ -71,10 +94,6 @@ public class MyHelpers
     public static float getTargetDistance()
     {
         return ObjectManager.Target.GetDistance;
-    }
-    public static bool sealthed()
-    {
-        return haveBuff("Sealth") || haveBuff("Vanish");
     }
     public static double getMeleeRange()
     {
@@ -88,6 +107,15 @@ public class MyHelpers
     {
         return ObjectManager.Me.CooldownTimeLeft(spellname);
     }
+    public static int spellCharges(string spellname)
+    {
+        return Lua.LuaDoString<int>("local charges = GetSpellCharges('" + spellname + "'); return charges;");
+    }
+    public static void castSpell(string spellname)
+    {
+        Lua.LuaDoString("CastSpellByName('" + spellname + "');");
+        return;
+    }
     public static int rollTheBonesCount()
     {
         uint[] list = { SkullAndCrossbones, TrueBearing, RuthlessPrecision, GrandMelee, BuriedTreasure, Broadside };
@@ -100,12 +128,7 @@ public class MyHelpers
         }
         return count;
     }
-    public static bool rtbReroll()
-    {
-        return MyHelpers.rollTheBonesCount() < 2
-            && !MyHelpers.haveBuff(MyHelpers.RuthlessPrecision)
-            && !MyHelpers.haveBuff(MyHelpers.GrandMelee);
-    }
+
     public static WoWUnit InterruptableUnits()
     {
         if (ObjectManager.Target.InCombat && ObjectManager.Target.IsCast && ObjectManager.Target.CanInterruptCasting)
@@ -146,6 +169,11 @@ public class MyHelpers
     public static float GetSpellCooldown(string spellName)
     {
         return Lua.LuaDoString<float>("local startTime, duration, enable = GetSpellCooldown('" + spellName + "'); return duration - (GetTime() - startTime)");
+    }
+
+    public static float GetSpellCooldownCharges(string spellName)
+    {
+        return Lua.LuaDoString<float>("local _, _, startTime, duration = GetSpellCharges('" + spellName + "'); return duration - (GetTime() - startTime)");
     }
 
     // Returns the cost of the spell passed as argument
@@ -273,7 +301,31 @@ public class MyHelpers
             return true;
         return false;
     }
+    public static bool itemIsUsable(string itemName)
+    {
+        return Lua.LuaDoString<bool>("local cooldown = GetItemCooldown(" + ItemsManager.GetIdByName(itemName) + ") if (cooldown == 0 ) then     return true; else     return false; end ");
 
+
+    }
+    public static bool itemIsEquiped(string itemName)
+    {
+        return EquippedItems.GetEquippedItems().Find(x => x.GetItemInfo.ItemName == itemName) != null;
+
+
+    }
+    public static int castTime(string spellname)
+    {
+        return Lua.LuaDoString<int>("local name,_,time = GetSpellInfo(" + spellname + "); return time;");
+    }
+    public static bool isChanneling()
+    {
+        return Lua.LuaDoString<bool>(@"local spell = UnitChannelInfo('player')
+                                    if spell then
+                                     return true;
+                                    end
+                                    return false;
+                                ");
+    }
     // Waits for GlobalCooldown to be off, must pass the most basic spell avalailable at lvl1 (ex: Smite for priest)
     public static void WaitGlobalCoolDown(Spell s)
     {

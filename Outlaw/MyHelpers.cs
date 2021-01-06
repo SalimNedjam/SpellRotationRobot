@@ -21,11 +21,11 @@ public class MyHelpers
 
     public static float GetMeleeRangeWithTarget()
     {
-        return DefaultMeleeRange + (ObjectManager.Target.CombatReach/2.0f);
+        return DefaultMeleeRange + (ObjectManager.Target.CombatReach / 2.0f);
     }
     public static bool InCombat()
     {
-        return  !ObjectManager.Me.IsMounted
+        return !ObjectManager.Me.IsMounted
             && ObjectManager.Target.IsAttackable
             && ObjectManager.Target.IsAlive
             && ObjectManager.Me.InCombatFlagOnly;
@@ -47,7 +47,7 @@ public class MyHelpers
 
     public static bool OOCMounted()
     {
-        return  ObjectManager.Me.IsMounted
+        return ObjectManager.Me.IsMounted
             && !Fight.InFight
             && !ObjectManager.Me.InCombatFlagOnly;
     }
@@ -76,6 +76,11 @@ public class MyHelpers
     {
         return SinisterStrike.MaxRange + 4.1 < 9.0f ? 9.0f : SinisterStrike.MaxRange + 4.1;
     }
+
+    public static double getDistanceRange()
+    {
+        return SinisterStrike.MaxRange + 12.1 < 20.0f ? 20.0f : SinisterStrike.MaxRange + 12.1;
+    }
     public static double getMaxRange(Spell s, float standard)
     {
         return s.MaxRange + 4.1 < standard ? standard : s.MaxRange + 4.1;
@@ -84,19 +89,55 @@ public class MyHelpers
     {
         return ObjectManager.Me.CooldownTimeLeft(spellname);
     }
-    public static int rollTheBonesCount()
+    public static int[] rollTheBonesCount()
     {
         uint[] list = { SkullAndCrossbones, TrueBearing, RuthlessPrecision, GrandMelee, BuriedTreasure, Broadside };
-        int count = 0;
+        int[] ret = {0, 0};
         foreach (uint spellid in list)
         {
             if (ObjectManager.Me.HaveBuff(spellid))
-                count = count + 1;
+            {
+                ret[0] += 1;
+                ret[1] = BuffTimeLeft(SpellManager.GetSpellInfo(spellid).Name);
+            }
 
         }
-        return count;
+        return ret;
     }
+    public static bool rtbReroll()
+    {
+        int[] reroll = rollTheBonesCount();
 
+        if ((getAttackers(18) < 3
+            && reroll[0] < 2
+            && !MyHelpers.haveBuff(MyHelpers.RuthlessPrecision))
+            || reroll[1] < 5)
+            return true;
+
+        if ((getAttackers(18) >= 3
+            && reroll[0] < 2
+            && !MyHelpers.haveBuff(MyHelpers.RuthlessPrecision)
+            && !MyHelpers.haveBuff(MyHelpers.GrandMelee)) 
+            || reroll[1] < 5
+            || (getAttackers(18) > 1
+            && reroll[0] == 2
+            && MyHelpers.haveBuff(MyHelpers.SkullAndCrossbones)
+            && (MyHelpers.haveBuff(MyHelpers.TrueBearing)|| MyHelpers.haveBuff(MyHelpers.BuriedTreasure))))
+            return true;
+
+        return false;
+    }
+    public static void castSpell(string spellname)
+    {
+        Lua.LuaDoString("CastSpellByName('" + spellname + "');");
+        return;
+    }
+    public static int cpReduction()
+    {
+        if (MyHelpers.haveBuff(MyHelpers.Broadside))
+            return 1;
+        return 0;
+    }
     public static WoWUnit InterruptableUnits()
     {
         if (ObjectManager.Target.InCombat && ObjectManager.Target.IsCast && ObjectManager.Target.CanInterruptCasting)
@@ -112,6 +153,17 @@ public class MyHelpers
                 return x;
         }
         return null;
+
+    }
+    public static void searchAttackers()
+    {
+        List<WoWUnit> list = ObjectManager.GetWoWUnitAttackables(9.0f);
+
+        if (list.Count > 0)
+        {
+            ObjectManager.Me.Target = list[0].Guid;
+            MovementManager.Face(ObjectManager.Target.Position);
+        }   
 
     }
     #region Combat
@@ -245,9 +297,9 @@ public class MyHelpers
     {
         return Lua.LuaDoString<int>
             ($"for i=1,25 do " +
-                "local n, _, _, _, _, duration, _  = UnitBuff('player',i); " +
-                "if n == '" + buffName + "' then " +
-                "return duration " +
+                "local name, icon, count, debuffType, duration, expirationTime = UnitBuff('player',i);" +
+                "if name == '" + buffName + "' then " +
+                "return expirationTime - GetTime()" +
                 "end " +
             "end");
     }

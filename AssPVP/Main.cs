@@ -48,20 +48,20 @@ public class Main : ICustomClass
     */
     public void ShowConfiguration()
     {
-        OutlawSettings.Load();
-        OutlawSettings.CurrentSetting.ToForm();
-        OutlawSettings.CurrentSetting.Save();
+
     }
 
     /*
     * Spells for Rotation 
     */
-    public Spell RolltheBones = new Spell("Roll the Bones");
-    public Spell SinisterStrike = new Spell("Sinister Strike");
-    public Spell PistolShot = new Spell("Pistol Shot");
-    public Spell Dispatch = new Spell("Dispatch");
-    public Spell BetweenTheEyes = new Spell("Between The Eyes");
-    public Spell BladeFlurry = new Spell("Blade Flurry");
+    public Spell Garrote = new Spell("Garrote");
+    public Spell Rupture = new Spell("Rupture");
+    public Spell Envenom = new Spell("Envenom");
+    public Spell FanOfKnives = new Spell("Fan Of Knives");
+    public Spell Mutilate = new Spell("Mutilate");
+    public Spell PoisonedKnife = new Spell("Poisoned Knife");
+    public Spell Vendetta = new Spell("Vendetta");
+    public Spell ToxicBlade = new Spell("Toxic Blade");
     public Spell BloodoftheEnemy = new Spell("Blood of the Enemy");
     public Spell AdrenalineRush = new Spell("Adrenaline Rush");
     public Spell Kick = new Spell("Kick");
@@ -71,11 +71,9 @@ public class Main : ICustomClass
     public Spell Feint = new Spell("Feint");
     public Spell Riposte = new Spell("Riposte");
     public Spell CloakOfShadows = new Spell("Cloak of Shadows");
-    public Spell GrapplingHook = new Spell("Grappling Hook");
     public Spell Sprint = new Spell("Sprint");
     public Spell SmokeBomb = new Spell("Smoke Bomb");
     public Spell GladiatorsMedallion = new Spell(208683);
-    public Spell BladeRush = new Spell("Blade Rush");
 
     /* Rotation() */
     public void Rotation()
@@ -88,7 +86,7 @@ public class Main : ICustomClass
             {
                 if (Products.InPause)
                     Lua.LuaDoString(@"dRotationFrame.text:SetText(""dRotation Paused!"")");
-                else if (!ObjectManager.Me.IsDeadMe  && ObjectManager.Me.Target.IsNotZero() && !MyHelpers.sealthed())
+                else if (!ObjectManager.Me.IsDeadMe  && ObjectManager.Me.Target.IsNotZero() && ObjectManager.Target.IsAttackable && !MyHelpers.sealthed() )
                     CombatRotation();
 
             }
@@ -158,7 +156,7 @@ public class Main : ICustomClass
         {
 
             WoWUnit toInterrupt = MyHelpers.InterruptableUnits();
-            if (toInterrupt != null )
+            if (toInterrupt != null)
             {
                 ObjectManager.Me.FocusGuid = toInterrupt.Guid;
 
@@ -186,7 +184,7 @@ public class Main : ICustomClass
             }
         }
 
-        if (ObjectManager.Me.Health < ObjectManager.Me.MaxHealth*0.7)
+        if (ObjectManager.Me.Health < ObjectManager.Me.MaxHealth*0.6)
         {
             
 
@@ -264,45 +262,6 @@ public class Main : ICustomClass
 
         }
 
-        if (OutlawSettings.CurrentSetting.EnableBladeFlurry
-            && BladeFlurry.KnownSpell && !MyHelpers.haveBuff("Blade Flurry") && BladeFlurry.IsSpellUsable && (MyHelpers.getAttackers(10) > 1))
-        {
-            BladeFlurry.Launch();
-            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Blade Flurry"")");
-            return;
-        }
-
-        if (OutlawSettings.CurrentSetting.EnableBloodoftheEnemy
-            && BloodoftheEnemy.KnownSpell
-            && BloodoftheEnemy.IsSpellUsable
-            && MyHelpers.getTargetDistance() <= MyHelpers.getMeleeRange()
-            && ! MyHelpers.rtbReroll()
-            && BetweenTheEyes.IsSpellUsable
-            && (ObjectManager.Target.IsLocalPlayer || ObjectManager.Target.Type == WoWObjectType.Player)
-                
-        )
-        {
-            BloodoftheEnemy.Launch();
-            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Bloodof the Enemy"")");
-            return;
-        }
-
-        
-
-        if (OutlawSettings.CurrentSetting.EnableGrapplingHook
-            && !ObjectManager.Me.IsMounted
-            && GrapplingHook.KnownSpell
-            && GrapplingHook.IsSpellUsable
-            && MyHelpers.getTargetDistance() <= 20.0f
-            && MyHelpers.getTargetDistance() > MyHelpers.getMeleeRange()
-            )
-        {
-            ClickOnTerrain.Spell(195457, ObjectManager.Target.Position);
-            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Grappling Hook"")");
-            return;
-
-        }
-
         if (OutlawSettings.CurrentSetting.EnableSprint
             && !ObjectManager.Me.IsMounted 
             && Sprint.KnownSpell
@@ -316,18 +275,6 @@ public class Main : ICustomClass
 
         }
 
-        if (OutlawSettings.CurrentSetting.EnableRolltheBones
-            && RolltheBones.KnownSpell
-            && RolltheBones.IsSpellUsable
-            && MyHelpers.getTargetDistance() <= MyHelpers.getMeleeRange()
-            && MyHelpers.getComboPoint() >= 4
-            && MyHelpers.rtbReroll()
-            )
-        {
-            RolltheBones.Launch();
-            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Roll the Bones"")");
-            return;
-        }
         if (OutlawSettings.CurrentSetting.EnableAdrenalineRush
             && AdrenalineRush.KnownSpell
             && AdrenalineRush.IsSpellUsable
@@ -343,68 +290,55 @@ public class Main : ICustomClass
             return;
         }
 
-        if (BladeRush.KnownSpell
-            && BladeRush.IsSpellUsable
-            && MyHelpers.getTargetDistance() <= 20.0f
-            && MyHelpers.getTargetDistance() > MyHelpers.getMeleeRange()
-            && !ObjectManager.Me.IsMounted
-            )
+
+
+
+
+
+        if (Garrote.KnownSpell && Garrote.IsSpellUsable
+            && !ObjectManager.Target.HaveBuff("Garrote"))
         {
-            BladeRush.Launch();
-            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Blade Rush"")");
+            Garrote.Launch();
+            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Garrote"")");
             return;
         }
 
-        if (OutlawSettings.CurrentSetting.EnablePistolShot
-            && PistolShot.KnownSpell
-            && PistolShot.IsSpellUsable
-            && MyHelpers.getTargetDistance() <= 20.0f
-            && ((MyHelpers.haveBuff("Opportunity") && MyHelpers.getComboPoint() <= 4)
-                    || (MyHelpers.getTargetDistance() > MyHelpers.getMeleeRange() && !(BetweenTheEyes.IsSpellUsable && MyHelpers.getComboPoint() == 6))
-                    || (MyHelpers.haveBuff("Deadshot") && MyHelpers.haveBuff("Seething Rage") && !BetweenTheEyes.IsSpellUsable)
-                    ))
+        if  (Rupture.KnownSpell && Rupture.IsSpellUsable
+            && MyHelpers.getComboPoint() >= 4 
+            && !ObjectManager.Target.HaveBuff("Rupture"))
         {
-            PistolShot.Launch();
-            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Pistol Shot"")");
+            Rupture.Launch();
+            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Rupture"")");
             return;
         }
-
-        if (OutlawSettings.CurrentSetting.EnableSinisterStrike
-            && SinisterStrike.KnownSpell
-            && SinisterStrike.IsSpellUsable
-            && MyHelpers.getTargetDistance() <= MyHelpers.getMeleeRange()
-            && MyHelpers.getComboPoint() <= 5)
+        if (ToxicBlade.KnownSpell && ToxicBlade.IsSpellUsable
+            && ObjectManager.Target.HaveBuff("Rupture"))
         {
-
-            SinisterStrike.Launch();
-            Lua.LuaDoString("dRotationFrame.text:SetText(\"Sinister Strike " + MyHelpers.getTargetDistance() + " / " + MyHelpers.GetMeleeRangeWithTarget() + "\")");
+            ToxicBlade.Launch();
+            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Toxic Blade"")");
             return;
         }
-
-
-
-        if (OutlawSettings.CurrentSetting.EnableBetweenTheEyes
-            && BetweenTheEyes.KnownSpell
-            && BetweenTheEyes.IsSpellUsable
-            && MyHelpers.getTargetDistance() <= 20.0f
-            && MyHelpers.getComboPoint() == 6)
+        if (Vendetta.KnownSpell && Vendetta.IsSpellUsable
+            && ObjectManager.Target.HaveBuff("Rupture"))
         {
-            BetweenTheEyes.Launch();
-            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Between the Eyes"")");
-
+            Vendetta.Launch();
+            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Vendetta"")");
             return;
         }
-
-        if (OutlawSettings.CurrentSetting.EnableDispatch
-            && Dispatch.KnownSpell
-            && Dispatch.IsSpellUsable
-            && MyHelpers.getTargetDistance() <= MyHelpers.getMeleeRange()
-            && MyHelpers.getComboPoint() == 6)
+        if (Envenom.KnownSpell && Envenom.IsSpellUsable
+           && MyHelpers.getComboPoint() >= 4
+           && ObjectManager.Target.HaveBuff("Rupture"))
         {
-            Dispatch.Launch();
-            Lua.LuaDoString("dRotationFrame.text:SetText(\"Dispatch " + MyHelpers.getTargetDistance() + " / " + MyHelpers.GetMeleeRangeWithTarget() + "\")");
+            Envenom.Launch();
+            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Envenom"")");
             return;
         }
-
+        if (Mutilate.KnownSpell && Mutilate.IsSpellUsable
+           && MyHelpers.getComboPoint() < 4)
+        {
+            Mutilate.Launch();
+            Lua.LuaDoString(@"dRotationFrame.text:SetText(""Mutilate"")");
+            return;
+        }
     }
 }

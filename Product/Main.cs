@@ -12,7 +12,42 @@ public class Main : wManager.Plugin.IPlugin
     private static bool _launched;
     private static int timeStrafe;
     private static int isLeft;
+    public enum MoveAction
+    {
+        Left = 0,
+        Right = 1,
+        Forward = 2
+    }
+    public void strafe(MoveAction direction, int timeStrafe)
+    {
+        int portionSleep = timeStrafe / 20;
+        switch (direction)
+        {
+            case MoveAction.Left:
+                Move.StrafeLeft(Move.MoveAction.DownKey);
+                for (int i = 0; i < timeStrafe; i += portionSleep)
+                {
+                    Thread.Sleep(portionSleep);
+                    MovementManager.Face(ObjectManager.Target.Position);
 
+                }
+                Move.StrafeLeft(Move.MoveAction.UpKey);
+                break;
+            case MoveAction.Right:
+
+                Move.StrafeRight(Move.MoveAction.DownKey);
+                for (int i = 0; i < timeStrafe; i += portionSleep)
+                {
+                    Thread.Sleep(portionSleep);
+                    MovementManager.Face(ObjectManager.Target.Position);
+
+                }
+                Move.StrafeRight(Move.MoveAction.UpKey);
+
+                break;
+
+        }
+    }
     public void Initialize()
     {
 
@@ -23,29 +58,27 @@ public class Main : wManager.Plugin.IPlugin
         {
             try
             {
-                if (!Products.InPause && Battleground.IsInBattleground())
+                if (!Products.InPause)
                 {
                     if (!ObjectManager.Me.IsDeadMe && Fight.InFight && ObjectManager.Me.Target.IsNotZero() && ObjectManager.Target.GetDistance < 5.0f)
                     {
-                        Move.Forward(Move.MoveAction.DownKey);
 
-                        timeStrafe = Others.Random(200, 400);
-                        isLeft = Others.Random(0, 100);
-                        MovementManager.Face(ObjectManager.Target.Position);
+                        while (ObjectManager.Target.GetDistance < 5.0f)
+                        {
+                            timeStrafe = Others.Random(200, 400);
+                            isLeft = Others.Random(0, 100);
+                            if (isLeft < 50)
+                            {
+                                strafe(MoveAction.Left, timeStrafe);
+                            }
+                            else
+                            {
+                                strafe(MoveAction.Right, timeStrafe);
 
-                        if (isLeft < 50)
-                        {
-                            Move.StrafeLeft(Move.MoveAction.DownKey);
-                            Thread.Sleep(timeStrafe);
-                            Move.StrafeLeft(Move.MoveAction.UpKey);
+                            }
+                            
                         }
-                        else
-                        {
-                            Move.StrafeRight(Move.MoveAction.DownKey);
-                            Thread.Sleep(timeStrafe);
-                            Move.StrafeRight(Move.MoveAction.UpKey);
-                        }
-                        Move.Forward(Move.MoveAction.UpKey);
+
                     }
                     else
                     {

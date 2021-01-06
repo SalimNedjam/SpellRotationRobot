@@ -51,7 +51,33 @@ public class MyHelpers
             && !Fight.InFight
             && !ObjectManager.Me.InCombatFlagOnly;
     }
+    public static bool sealthed()
+    {
+        return Lua.LuaDoString<bool>(
+        @"for i=1,40 do 
+            local n = UnitBuff('player', i);
+                if n == 'Sealth' or n == 'Vanish' then
+                return true;
+            end
+        end
 
+        return false;
+        ");
+    }
+
+    public static bool haveBL()
+    {
+        return Lua.LuaDoString<bool>(
+        @"for i=1,40 do 
+            local n = UnitBuff('player', i);
+            local m = UnitAura('player', i);
+            if n == 'Time Warp' or n == 'Bloodlust' or n == 'Heroism' or m == 'Time Warp' or m == 'Bloodlust' or m == 'Heroism' then
+                return true;
+            end
+        end
+        return false;
+        ");
+    }
     public static int getAttackers(int distance)
     {
         return ObjectManager.GetWoWUnitAttackables(distance).Count;
@@ -59,6 +85,11 @@ public class MyHelpers
     public static bool haveBuff(uint spellid)
     {
         return ObjectManager.Me.HaveBuff(spellid);
+    }
+    public static void castSpell(string spellname)
+    {
+        Lua.LuaDoString("CastSpellByName('" + spellname + "');");
+        return;
     }
     public static bool haveBuff(string spellname)
     {
@@ -72,13 +103,14 @@ public class MyHelpers
     {
         return ObjectManager.Target.GetDistance;
     }
-    public static bool sealthed()
-    {
-        return haveBuff("Sealth") || haveBuff("Vanish");
-    }
     public static double getMeleeRange()
     {
         return SinisterStrike.MaxRange + 4.1 < 9.0f ? 9.0f : SinisterStrike.MaxRange + 4.1;
+    }
+
+    public static double getDistanceRange()
+    {
+        return SinisterStrike.MaxRange + 12.1 < 20.0f ? 20.0f : SinisterStrike.MaxRange + 12.1;
     }
     public static double getMaxRange(Spell s, float standard)
     {
@@ -88,23 +120,39 @@ public class MyHelpers
     {
         return ObjectManager.Me.CooldownTimeLeft(spellname);
     }
-    public static int rollTheBonesCount()
+    public static int[] rollTheBonesCount()
     {
         uint[] list = { SkullAndCrossbones, TrueBearing, RuthlessPrecision, GrandMelee, BuriedTreasure, Broadside };
-        int count = 0;
+        int[] ret = { 0, 0 };
         foreach (uint spellid in list)
         {
             if (ObjectManager.Me.HaveBuff(spellid))
-                count = count + 1;
+            {
+                ret[0] += 1;
+                ret[1] = BuffTimeLeft(SpellManager.GetSpellInfo(spellid).Name);
+            }
 
         }
-        return count;
+        return ret;
     }
-    public static bool rtbReroll()
+    public static int haveOP()
     {
-        return MyHelpers.rollTheBonesCount() < 2
-            && !MyHelpers.haveBuff(MyHelpers.RuthlessPrecision)
-            && !MyHelpers.haveBuff(MyHelpers.GrandMelee);
+        
+        return Lua.LuaDoString<int>(
+        @"for i=1,40 do 
+            local n, _, count, _, _, _, _, _, isStealable = UnitAura('player', i);
+                if n == 'Overwhelming Power' then
+                return count;
+            end
+        end
+        return 0;
+        ");
+    }
+    public static int cpReduction()
+    {
+        if (MyHelpers.haveBuff(MyHelpers.Broadside))
+            return 1;
+        return 0;
     }
     public static WoWUnit InterruptableUnits()
     {
@@ -121,6 +169,17 @@ public class MyHelpers
                 return x;
         }
         return null;
+
+    }
+    public static void searchAttackers()
+    {
+        List<WoWUnit> list = ObjectManager.GetWoWUnitAttackables(9.0f);
+
+        if (list.Count > 0)
+        {
+            ObjectManager.Me.Target = list[0].Guid;
+            MovementManager.Face(ObjectManager.Target.Position);
+        }
 
     }
     #region Combat
@@ -254,12 +313,23 @@ public class MyHelpers
     {
         return Lua.LuaDoString<int>
             ($"for i=1,25 do " +
-                "local n, _, _, _, _, duration, _  = UnitBuff('player',i); " +
-                "if n == '" + buffName + "' then " +
-                "return duration " +
+                "local name, icon, count, debuffType, duration, expirationTime = UnitBuff('player',i);" +
+                "if name == '" + buffName + "' then " +
+                "return expirationTime - GetTime()" +
                 "end " +
             "end");
     }
+    public static int TargetDebuffTimeLeft(string buffName)
+    {
+        return Lua.LuaDoString<int>
+            ($"for i=1,25 do " +
+                "local name, icon, count, debuffType, duration, expirationTime = UnitDebuff('target',i);" +
+                "if name == '" + buffName + "' then " +
+                "return expirationTime - GetTime()" +
+                "end " +
+            "end");
+    }
+
 
     // Returns true if the enemy is either casting or channeling (good for interrupts)
     public static bool EnemyCasting()
